@@ -1,93 +1,45 @@
-function calculateNetSalary(basicSalary, benefits) {
-  // -----------------------------
-  // CONSTANTS
-  // -----------------------------
-  const personalRelief = 2400; // KRA personal relief
-  const housingLevyRate = 0.015; // 1.5%
-  const shifRate = 0.0275; // 2.75% of gross
-  const nssfTier1Limit = 8000;
-  const nssfTier2Limit = 72000;
-  const nssfRate = 0.06; // 6%
+function calculateNetSalary(basic, benefits) {
+  const gross = basic + benefits;
 
-  // -----------------------------
-  // GROSS SALARY
-  // -----------------------------
-  const grossSalary = basicSalary + benefits;
+  // NSSF and SHIF calculations
+  const nssfTier1 = Math.min(gross, 8000) * 0.06;
+  const nssfTier2 = gross > 8000 ? Math.min(gross - 8000, 72000 - 8000) * 0.06 : 0;
+  const nssf = Math.min(nssfTier1 + nssfTier2, 4320);
+  const shif = Math.max(300, gross * 0.0275); 
 
-  // -----------------------------
-  // NSSF (Tier I & II)
-  // -----------------------------
-  let nssfDeduction = 0;
-  if (grossSalary <= nssfTier1Limit) {
-    nssfDeduction = grossSalary * nssfRate;
-  } else if (grossSalary <= nssfTier2Limit) {
-    nssfDeduction = (nssfTier1Limit * nssfRate) + ((grossSalary - nssfTier1Limit) * nssfRate);
-  } else {
-    nssfDeduction = (nssfTier1Limit * nssfRate) + ((nssfTier2Limit - nssfTier1Limit) * nssfRate);
-  }
+  let taxable = gross - (nssf + shif);
 
-  // -----------------------------
-  // TAXABLE PAY
-  // -----------------------------
-  const taxablePay = grossSalary - nssfDeduction;
-
-  // -----------------------------
-  // PAYE (2023 bands)
-  // -----------------------------
   let paye = 0;
-  if (taxablePay <= 24000) {
-    paye = taxablePay * 0.10;
-  } else if (taxablePay <= 32333) {
-    paye = (24000 * 0.10) + ((taxablePay - 24000) * 0.25);
-  } else if (taxablePay <= 500000) {
-    paye = (24000 * 0.10) + (8333 * 0.25) + ((taxablePay - 32333) * 0.30);
-  } else if (taxablePay <= 800000) {
-    paye = (24000 * 0.10) + (8333 * 0.25) + (467667 * 0.30) + ((taxablePay - 500000) * 0.325);
-  } else {
-    paye = (24000 * 0.10) + (8333 * 0.25) + (467667 * 0.30) + (300000 * 0.325) + ((taxablePay - 800000) * 0.35);
+  const relief = 2400;
+  const bands = [
+    { upTo: 24000, rate: 0.10 },
+    { upTo: 32333, rate: 0.25 },
+    { upTo: 500000, rate: 0.30 },
+    { upTo: 800000, rate: 0.325 },
+    { upTo: Infinity, rate: 0.35 }
+  ];
+   let remaining = taxable;
+  let lower = 0;
+  for (const band of bands) {
+    if (remaining <= 0) break;
+    const taxablePortion = Math.min(remaining, band.upTo - lower);
+    paye += taxablePortion * band.rate;
+    remaining -= taxablePortion;
+    lower = band.upTo;
   }
+  paye = Math.max(0, paye - relief);
 
-  // Apply personal relief
-  paye = Math.max(paye - personalRelief, 0);
+  // -- Net Salary --
+  const net = gross - (nssf + shif + paye);
 
-  // -----------------------------
-  // SHIF (2.75% of gross)
-  // -----------------------------
-  const shifDeduction = grossSalary * shifRate;
-
-  // -----------------------------
-  // Housing Levy (1.5% of gross)
-  // -----------------------------
-  const housingLevy = grossSalary * housingLevyRate;
-
-  // -----------------------------
-  // NET SALARY
-  // -----------------------------
-  const netSalary = grossSalary - (paye + nssfDeduction + shifDeduction + housingLevy);
-
-  // -----------------------------
-  // OUTPUT
-  // -----------------------------
-  return {
-    grossSalary,
-    nssfDeduction,
-    taxablePay,
-    paye,
-    shifDeduction,
-    housingLevy,
-    netSalary
-  };
+  console.log(`Gross: Ksh ${gross.toFixed(2)}`);
+  console.log(`NSSF Deduction: Ksh ${nssf.toFixed(2)}`);
+  console.log(`SHIF Deduction: Ksh ${shif.toFixed(2)}`);
+  console.log(`PAYE: Ksh ${paye.toFixed(2)}`);
+  console.log(`Net Salary: Ksh ${net.toFixed(2)}`);
 }
 
-// -----------------------------
-// Example Usage
-// -----------------------------
-let salaryDetails = calculateNetSalary(50000, 10000);
+calculateNetSalary();
 
-console.log("Gross Salary:", salaryDetails.grossSalary);
-console.log("NSSF Deduction:", salaryDetails.nssfDeduction);
-console.log("Taxable Pay:", salaryDetails.taxablePay);
-console.log("PAYE (Tax):", salaryDetails.paye);
-console.log("SHIF Deduction:", salaryDetails.shifDeduction);
-console.log("Housing Levy:", salaryDetails.housingLevy);
-console.log("Net Salary:", salaryDetails.netSalary);
+
+  
